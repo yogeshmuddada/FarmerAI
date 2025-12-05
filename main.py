@@ -85,9 +85,7 @@ if uploaded_file is not None:
             with st.spinner("Generating explanation using AI..."):
                 try:
                     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
-
-        
-                  prompt = (f"""
+                    prompt = (f"""
 You are an agricultural expert. The detected plant condition is: '{predicted_class}'.
 
 Your task:
