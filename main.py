@@ -88,9 +88,27 @@ if uploaded_file is not None:
 
         
                     prompt = (
-                        f"Explain the plant disease '{predicted_class}' in simple layman language for farmers. "
-                        "Make the explanation very practical and easy to follow. "
-                        "Limit the explanation to 100 words."
+						You are an agricultural expert. The detected plant condition is: '{predicted_class}'.
+
+						Your task:
+							1. If the class indicates a DISEASE, provide:
+								- A simple explanation in layman language (max 80 words)
+								- Precautions farmers should take
+								- Recommended pesticides (common, widely available options)
+								- Organic / natural control methods
+								- Tips to improve yield
+
+							2. If the class is 'Healthy', give:
+								- Simple confirmation that the plant is healthy
+								- General care tips to maintain good yield
+
+							Supported classes:
+							Corn: Common Rust, Gray Leaf Spot, Leaf Blight, Healthy
+							Potato: Early Blight, Late Blight, Healthy
+							Rice: Brown Spot, Hispa, Leaf Blast, Healthy
+							Wheat: Brown Rust, Yellow Rust, Healthy
+
+							Output should be short, clear, and farmer-friendly.
                     )
 
                     result = llm.invoke(prompt)
