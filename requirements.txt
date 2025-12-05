@@ -1,12 +1,8 @@
 streamlit
 Pillow==11.3.0
-
-# Transformers version that still has ViTFeatureExtractor
 transformers==4.57.2
 huggingface-hub
-
-# Use your existing PyTorch install
-torch==2.9.0+cu126
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
 torchvision
-
 pytorch-lightning
