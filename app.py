@@ -2,7 +2,7 @@
 import streamlit as st
 from tensorflow.keras.models import load_model
 import numpy as np
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import io
 import os
 import tempfile
@@ -36,20 +36,27 @@ uploaded_image = st.file_uploader("Upload an image (jpg / png)", type=["jpg", "j
 # ---------- Helpers ----------
 @st.cache_resource
 def load_model_from_bytes(model_bytes: bytes):
+    """
+    Save uploaded bytes to a temp file and load the Keras model from disk.
+    compile=False is used to speed up loading when training config is not needed.
+    """
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".h5")
+    tmp_path = tmp_file.name
     try:
         tmp_file.write(model_bytes)
         tmp_file.flush()
         tmp_file.close()
-        model = load_model(tmp_file.name, compile=False)
+        model = load_model(tmp_path, compile=False)
     finally:
+        # attempt to remove the temporary file - if the OS/file handles allow it.
         try:
-            os.remove(tmp_file.name)
+            os.remove(tmp_path)
         except Exception:
             pass
     return model
 
 def preprocess_pil(img: Image.Image, target_size=IMG_TARGET_SIZE):
+    """Convert PIL image to model input array (batch of 1)."""
     img = img.convert("RGB")
     img = img.resize(target_size)
     arr = np.asarray(img).astype(np.float32) / 255.0
@@ -77,26 +84,32 @@ if uploaded_image is None:
 
 if uploaded_model is not None and uploaded_image is not None:
     try:
-        try:
-            uploaded_model.seek(0, io.SEEK_END)
-            model_size = uploaded_model.tell()
-            uploaded_model.seek(0)
-        except Exception:
-            model_bytes_peek = uploaded_model.read()
-            model_size = len(model_bytes_peek)
-            uploaded_model.seek(0)
+        # Read model bytes (UploadedFile may not support .seek reliably in some environments)
+        model_bytes = uploaded_model.read()
+        model_size = len(model_bytes)
         st.write(f"**Model file:** {getattr(uploaded_model, 'name', 'uploaded_model.h5')}  —  {sizeof_fmt(model_size)}")
         if model_size > 300 * 1024 * 1024:
             st.warning("Uploaded model size exceeds 300 MB. Streamlit won't accept files larger than the configured limit.")
         with st.spinner("Loading model (this may take some time for large models)..."):
-            model_bytes = uploaded_model.read()
             model = load_model_from_bytes(model_bytes)
         st.success("Model loaded successfully.")
 
-        image_bytes = uploaded_image.read()
-        pil_img = Image.open(io.BytesIO(image_bytes))
+        # Read and validate image
+        try:
+            image_bytes = uploaded_image.read()
+            pil_img = Image.open(io.BytesIO(image_bytes))
+            pil_img.verify()  # verify will check file integrity; image must be reopened after verify
+            pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except UnidentifiedImageError:
+            st.error("Uploaded file is not a valid image. Please upload a JPG or PNG.")
+            raise
+        except Exception as ex:
+            st.error("Error reading uploaded image.")
+            raise
+
         st.image(pil_img, caption="Input image", use_column_width=True)
 
+        # Preprocess and predict
         x = preprocess_pil(pil_img)
         with st.spinner("Running prediction..."):
             topk, full_preds = predict_topk(model, x, TOP_K)
@@ -121,6 +134,7 @@ if uploaded_model is not None and uploaded_image is not None:
         st.write("- Ensure the `.h5` model was trained with the same class order as `class_labels`.")
         st.write("- If your model used different image preprocessing (mean subtraction / different size), update `preprocess_pil`.")
         st.write("- If model loading fails due to custom layers, provide `custom_objects` to `load_model`.")
+        st.write("- For very large models consider converting to a TF SavedModel or quantizing to reduce memory footprint.")
 else:
     st.write("")
 
