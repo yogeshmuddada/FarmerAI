@@ -87,7 +87,7 @@ if uploaded_file is not None:
                     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 
         
-                  prompt = f"""
+                  prompt = (f"""
 You are an agricultural expert. The detected plant condition is: '{predicted_class}'.
 
 Your task:
@@ -109,7 +109,7 @@ Rice: Brown Spot, Hispa, Leaf Blast, Healthy
 Wheat: Brown Rust, Yellow Rust, Healthy
 
 Your answer must be short, clear, structured, and farmer-friendly.
-"""
+""")
 
                     result = llm.invoke(prompt)
 
