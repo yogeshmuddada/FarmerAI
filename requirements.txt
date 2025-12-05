@@ -1,15 +1,12 @@
-# Core app
 streamlit
-Pillow
+Pillow==11.3.0
+
+# Transformers version that still has ViTFeatureExtractor
+transformers==4.57.2
 huggingface-hub
 
-# Hugging Face Transformers (kept <5.0 so ViTFeatureExtractor is available)
-transformers>=4.30.0,<5.0.0
+# Use your existing PyTorch install
+torch==2.9.0+cu126
+torchvision
 
-# PyTorch & torchvision (CUDA 12.1 wheels)
---extra-index-url https://download.pytorch.org/whl/cu121
-torch==2.4.1+cu121
-torchvision==0.19.1+cu121
-
-# Training / Lightning (optional if you need it at runtime)
 pytorch-lightning
